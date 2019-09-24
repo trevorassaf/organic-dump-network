@@ -11,12 +11,12 @@ TlsConnection::TlsConnection() {}
 
 TlsConnection::TlsConnection(
   Fd fd,
-  std::string server_url,
-  uint16_t server_port,
+  std::string peer_url,
+  uint16_t peer_port,
   ssl_unique_ptr ssl)
 : fd_{std::move(fd)},
-  server_url_{std::move(server_url)},
-  server_port_{server_port},
+  peer_url_{std::move(peer_url)},
+  peer_port_{peer_port},
   ssl_{std::move(ssl)}
 {}
 
@@ -91,9 +91,9 @@ void TlsConnection::StealResources(TlsConnection *other)
     assert(other);
 
     fd_ = std::move(other->fd_);
-    server_url_ = std::move(other->server_url_);
-    server_port_ = other->server_port_;
-    other->server_port_ = 0;
+    peer_url_ = std::move(other->peer_url_);
+    peer_port_ = other->peer_port_;
+    other->peer_port_ = 0;
     ssl_ = std::move(other->ssl_);
 }
 

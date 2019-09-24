@@ -8,6 +8,8 @@
 
 #include <cassert>
 
+#include "TlsUtilities.h"
+
 namespace network
 {
 bool TlsClientFactory::Create(

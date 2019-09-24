@@ -21,8 +21,8 @@ public:
   TlsConnection();
   TlsConnection(
       Fd fd,
-      std::string server_url,
-      uint16_t server_port,
+      std::string peer_url,
+      uint16_t peer_port,
       ssl_unique_ptr ssl);
   ~TlsConnection();
   TlsConnection(TlsConnection &&other);
@@ -49,8 +49,8 @@ private:
 
 private:
   Fd fd_;
-  std::string server_url_;
-  uint16_t server_port_;
+  std::string peer_url_;
+  uint16_t peer_port_;
   ssl_unique_ptr ssl_;
 };
 } // namespace network
