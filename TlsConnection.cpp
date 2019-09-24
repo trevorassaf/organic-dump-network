@@ -1,5 +1,7 @@
 #include "TlsConnection.h"
 
+#include <glog/logging.h>
+
 #include <cassert>
 #include <utility>
 
@@ -82,6 +84,17 @@ bool TlsConnection::Write(
 
     *out_bytes_actually_written = result;
     return true;
+}
+
+void TlsConnection::StealResources(TlsConnection *other)
+{
+    assert(other);
+
+    fd_ = std::move(other->fd_);
+    server_url_ = std::move(other->server_url_);
+    server_port_ = other->server_port_;
+    other->server_port_ = 0;
+    ssl_ = std::move(other->ssl_);
 }
 
 } // namespace TlsConnection

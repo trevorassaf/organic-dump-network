@@ -10,20 +10,10 @@
 #include  <openssl/err.h>
 
 #include "Fd.h"
-#include "TlsConnection.h"
+#include "TlsUtilities.h"
 
 namespace network
 {
-
-struct SslDeleter
-{
-void operator()(SSL *ssl)
-{
-   SSL_free(ssl); 
-}
-};
-
-using ssl_unique_ptr = std::unique_ptr<SSL, SslDeleter>;
 
 class TlsConnection
 {
@@ -51,11 +41,11 @@ public:
       int *out_errno);
 
 private:
-  TlsConnection(const TlsConnection &other) = delete;
-  TlsConnection &operator=(const TlsConnection &other);
+  void StealResources(TlsConnection *other);
 
 private:
-  void StealResources(TlsConnection *other);
+  TlsConnection(const TlsConnection &other) = delete;
+  TlsConnection &operator=(const TlsConnection &other);
 
 private:
   Fd fd_;
