@@ -6,7 +6,8 @@ add_library(organic_dump_network SHARED
   TlsClient.cpp
   TlsClientFactory.cpp
   TlsServer.cpp
-  TlsServerFactory.cpp)
+  TlsServerFactory.cpp
+  TlsUtilities.cpp)
 
 #set_property(TARGET organic_dump_network PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(organic_dump_network gflags::gflags)
