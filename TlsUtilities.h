@@ -5,6 +5,8 @@
 #include  <openssl/ssl.h>
 #include  <openssl/err.h>
 
+#include <glog/logging.h>
+
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -16,7 +18,16 @@ struct SslDeleter
 {
 void operator()(SSL *ssl)
 {
-   SSL_free(ssl); 
+   LOG(ERROR) << "SSL::~SSL()";
+   if (ssl)
+   {
+       LOG(ERROR) << "ssl is not nullptr";
+       SSL_free(ssl); 
+   }
+   else
+   {
+      LOG(ERROR) << "ssl is nullptr";
+   }
 }
 };
 
@@ -26,7 +37,16 @@ struct SslCtxDeleter
 {
 void operator()(SSL_CTX *ctx)
 {
-   SSL_CTX_free(ctx); 
+   LOG(ERROR) << "SSL_CTX::~SSL_CTX()";
+   if (ctx)
+   {
+       LOG(ERROR) << "ssl ctx is not nullptr";
+       SSL_CTX_free(ctx); 
+   }
+   else
+   {
+      LOG(ERROR) << "ssl ctx is nullptr";
+   }
 }
 };
 

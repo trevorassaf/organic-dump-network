@@ -33,11 +33,13 @@ public:
       uint8_t *data,
       size_t bytes_to_read,
       size_t *out_bytes_actually_read,
+      bool *out_eof,
       int *out_errno);
   bool Write(
       const uint8_t *data,
       size_t bytes_to_write,
       size_t *out_bytes_actually_written,
+      bool *out_eof,
       int *out_errno);
 
 private:

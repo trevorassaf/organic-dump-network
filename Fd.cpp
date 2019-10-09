@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <iostream>
 
 namespace network
 {
@@ -18,6 +19,7 @@ Fd::Fd(int fd) : fd_{fd} {}
 
 Fd::~Fd()
 {
+    std::cerr << "bozkurtus -- Fd::~Fd(): " << fd_ << std::endl;
     Close(&fd_);
 }
 
@@ -59,6 +61,7 @@ void Fd::Close(int *fd)
     }
 
     close(*fd);
+    *fd = INVALID_FD;
 }
 
 } // namespace network

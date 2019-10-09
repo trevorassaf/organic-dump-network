@@ -1,6 +1,7 @@
 #include "TlsClient.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -13,15 +14,15 @@
 
 namespace network
 {
-TlsClient::TlsClient() {}
+TlsClient::TlsClient() : ctx_{nullptr} {}
 
 TlsClient::TlsClient(
     std::string server_url,
     uint16_t server_port,
-    ssl_ctx_unique_ptr ssl_ctx)
+    ssl_ctx_unique_ptr ctx)
   : server_url_{std::move(server_url)},
     server_port_{server_port},
-    ssl_ctx_{std::move(ssl_ctx)}
+    ctx_{std::move(ctx)}
 {}
 
 TlsClient::~TlsClient() {}
@@ -70,7 +71,7 @@ bool TlsClient::Connect(TlsConnection *out_connection)
         return false;
     }
 
-    ssl_unique_ptr ssl{SSL_new(ssl_ctx_.get())};
+    ssl_unique_ptr ssl{SSL_new(ctx_.get())};
     SSL_set_fd(ssl.get(), fd_wrapper.Get());
 
     if (SSL_connect(ssl.get()) != 1)
@@ -79,6 +80,7 @@ bool TlsClient::Connect(TlsConnection *out_connection)
         ERR_print_errors_fp(stderr);
         return false;
     }
+    fcntl(fd, F_SETFL, O_NONBLOCK);
 
     *out_connection = TlsConnection{
       std::move(fd_wrapper),
@@ -96,7 +98,7 @@ void TlsClient::StealResources(TlsClient *other)
     server_url_ = std::move(other->server_url_);
     server_port_ = other->server_port_;
     other->server_port_ = 0;
-    ssl_ctx_ = std::move(other->ssl_ctx_);
+    ctx_ = std::move(other->ctx_);
 }
 
 } // namespace network

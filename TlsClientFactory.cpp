@@ -23,47 +23,46 @@ bool TlsClientFactory::Create(
     assert(out_client);
 
     const SSL_METHOD *method = TLSv1_2_client_method();
-    SSL_CTX *ctx = SSL_CTX_new(method);
+    ssl_ctx_unique_ptr ctx{SSL_CTX_new(method)};
 
-    if (ctx == nullptr)
+    if (ctx.get() == nullptr)
     {
         ERR_print_errors_fp(stderr);
         return false;
     }
 
-    if (SSL_CTX_load_verify_locations(ctx, ca_cert.c_str(), nullptr) != 1)
+    if (SSL_CTX_load_verify_locations(ctx.get(), ca_cert.c_str(), nullptr) != 1)
     {
         LOG(ERROR) << "Failed to load client CA file: " << ca_cert;
         return false;
     }
 
-    if (SSL_CTX_use_certificate_file(ctx, client_cert.c_str(), SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_certificate_file(ctx.get(), client_cert.c_str(), SSL_FILETYPE_PEM) != 1)
     {
         LOG(ERROR) << "Failed to load client cert " << client_cert;
         return false;
     }
 
-    if (SSL_CTX_use_PrivateKey_file(ctx, client_key.c_str(), SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_PrivateKey_file(ctx.get(), client_key.c_str(), SSL_FILETYPE_PEM) != 1)
     {
         LOG(ERROR) << "Failed to load private key: " << client_key;
         return false;
     }
 
 
-    if (SSL_CTX_check_private_key(ctx) != 1)
+    if (SSL_CTX_check_private_key(ctx.get()) != 1)
     {
         LOG(ERROR) << "Private key does not agree with cert";
         return false;
     }
 
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
-    SSL_CTX_set_verify_depth(ctx, 1);
+    SSL_CTX_set_verify(ctx.get(), SSL_VERIFY_PEER, nullptr);
+    SSL_CTX_set_verify_depth(ctx.get(), 1);
 
     *out_client = TlsClient{
         std::move(server_url),
         server_port,
-        ssl_ctx_unique_ptr{ctx}
-    };
+        std::move(ctx)};
 
     return true;
 }

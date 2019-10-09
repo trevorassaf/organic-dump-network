@@ -1,6 +1,7 @@
 #include "TlsServer.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -19,7 +20,7 @@
 namespace network
 {
 
-TlsServer::TlsServer() : ctx_{}, fd_{} {}
+TlsServer::TlsServer() : ctx_{nullptr}, fd_{} {}
 
 TlsServer::TlsServer(
     ssl_ctx_unique_ptr ctx,
@@ -51,6 +52,7 @@ const Fd &TlsServer::GetFd() const
 
 bool TlsServer::Accept(TlsConnection *out_connection)
 {
+    LOG(ERROR) << "TlsServer::Accept() -- start";
     assert(out_connection);
 
     struct sockaddr_in client_addr;
@@ -88,12 +90,15 @@ bool TlsServer::Accept(TlsConnection *out_connection)
         ERR_print_errors_fp(stderr);
         return false;
     }
+    fcntl(result, F_SETFL, O_NONBLOCK);
 
     *out_connection = TlsConnection{
         std::move(connection_fd),
         std::move(client_ipv4_string),
         ntohs(client_addr.sin_port),
         std::move(ssl)};
+
+    LOG(ERROR) << "TlsServer::Accept() -- end";
 
     return true;
 }

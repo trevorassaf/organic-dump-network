@@ -15,11 +15,13 @@ bool SendTlsMessage(TlsConnection *connection, const std::string &message)
     while (bytes_remaining > 0)
     {
         size_t bytes_written;
+        bool eof = false;
         int write_errno;
         bool write_succeeded = connection->Write(
             reinterpret_cast<const uint8_t *>(message.c_str()),
             bytes_remaining,
             &bytes_written,
+            &eof,
             &write_errno);
 
         if (!write_succeeded)
@@ -30,6 +32,10 @@ bool SendTlsMessage(TlsConnection *connection, const std::string &message)
                            << strerror(write_errno);
                 return false;
             }
+        }
+        else if (eof)
+        {
+            return true;
         }
 
         bytes_remaining -= bytes_written;
@@ -44,6 +50,8 @@ bool ReadTlsMessage(
     size_t length,
     std::string *out_message)
 {
+    LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- call";
+
     assert(connection);
     assert(read_buffer);
     assert(out_message);
@@ -53,11 +61,13 @@ bool ReadTlsMessage(
     while (bytes_remaining > 0)
     {
         size_t bytes_read;
+        bool eof = false;
         int read_errno;
         bool read_succeeded = connection->Read(
             read_buffer,
             bytes_remaining,
             &bytes_read,
+            &eof,
             &read_errno);
 
         if (!read_succeeded)
@@ -67,9 +77,22 @@ bool ReadTlsMessage(
                 LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
                 return false;
             }
+
+            LOG(ERROR) << "bozkurtus -- would block";
         }
+        else if (eof)
+        {
+            LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- eof!";
+            return true;
+        }
+
         bytes_remaining -= bytes_read;
+
+        LOG(ERROR) << "ReadTlsMessage() loop. bytes remaining: " << bytes_remaining
+                   << ". bytes read: " << bytes_read;
     }
+
+    LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- end";
 
     return true;
 }

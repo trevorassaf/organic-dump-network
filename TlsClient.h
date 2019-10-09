@@ -37,7 +37,7 @@ private:
 private:
   std::string server_url_;
   uint16_t server_port_;
-  ssl_ctx_unique_ptr ssl_ctx_;
+  ssl_ctx_unique_ptr ctx_;
 };
 } // namespace network
 

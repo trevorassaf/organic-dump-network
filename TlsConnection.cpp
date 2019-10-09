@@ -7,7 +7,9 @@
 
 namespace network
 {
-TlsConnection::TlsConnection() {}
+TlsConnection::TlsConnection() : ssl_{nullptr} {
+    LOG(ERROR) << "TlsConnection::TlsConnection() -- non-args ctor";
+}
 
 TlsConnection::TlsConnection(
   Fd fd,
@@ -18,7 +20,10 @@ TlsConnection::TlsConnection(
   peer_url_{std::move(peer_url)},
   peer_port_{peer_port},
   ssl_{std::move(ssl)}
-{}
+{
+    LOG(ERROR) << "TlsConnection::TlsConnection() -- args ctor -- start";
+    LOG(ERROR) << "TlsConnection::TlsConnection() -- args ctor -- end";
+}
 
 TlsConnection::~TlsConnection() {}
 
@@ -29,7 +34,7 @@ TlsConnection::TlsConnection(TlsConnection &&other)
 
 TlsConnection &TlsConnection::operator=(TlsConnection &&other)
 {
-    if (this == &other)
+    if (this != &other)
     {
         StealResources(&other);
     }
@@ -46,10 +51,14 @@ bool TlsConnection::Read(
   uint8_t *data,
   size_t bytes_to_read,
   size_t *out_bytes_actually_read,
+  bool *out_eof,
   int *out_errno)
 {
+    LOG(ERROR) << "TlsConnection::Read() -- start";
+
     assert(data);
     assert(out_bytes_actually_read);
+    assert(out_eof);
     assert(out_errno);
 
     int result = SSL_read(ssl_.get(), data, bytes_to_read);
@@ -57,10 +66,22 @@ bool TlsConnection::Read(
     {
         *out_bytes_actually_read = 0;
         *out_errno = errno;
+        LOG(ERROR) << "TlsConnection::Read() -- SSL_read() failed";
         return false;
     }
+    else if (result == 0)
+    {
+        LOG(ERROR) << "TlsConnection::Read() -- eof!";
+        *out_eof = true;
+        return true;
+    }
+
+    LOG(ERROR) << "TlsConnection::Read() -- after SSL_read()";
 
     *out_bytes_actually_read = result;
+
+    LOG(ERROR) << "TlsConnection::Read() -- end. result: " << result;
+
     return true;
 }
 
@@ -68,11 +89,16 @@ bool TlsConnection::Write(
     const uint8_t *data,
     size_t bytes_to_write,
     size_t *out_bytes_actually_written,
+    bool *out_eof,
     int *out_errno)
 {
     assert(data);
     assert(out_bytes_actually_written);
+    assert(out_eof);
     assert(out_errno);
+
+    LOG(ERROR) << "TlsConnection::Write() -- before SSL_write(). bytes to write: " << bytes_to_write
+               << ". SSL fd: " << SSL_get_fd(ssl_.get());
 
     int result = SSL_write(ssl_.get(), data, bytes_to_write);
     if (result < 0)
@@ -80,6 +106,11 @@ bool TlsConnection::Write(
        *out_errno = errno;
        *out_bytes_actually_written = 0;
        return false; 
+    }
+    else if (result == 0)
+    {
+        *out_eof = true;
+        return true;
     }
 
     *out_bytes_actually_written = result;
