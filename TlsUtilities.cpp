@@ -225,18 +225,26 @@ bool SendTlsProtobufMessage(
         return false;
     }
 
-    size_t msg_len = msg->ByteSizeLong();
-    uint32_t msg_len_network_order = htonl(static_cast<uint32_t>(msg_len));
+    //size_t msg_len = msg->ByteSizeLong();
+    std::string data_str;
+    msg->SerializeToString(&data_str);
+
+
+    LOG(ERROR) << "Msg Len: " << data_str.size();
+
+    uint32_t msg_len_network_order = htonl(static_cast<uint32_t>(data_str.size()));
     if (!SendTlsData(cxn, reinterpret_cast<uint8_t *>(&msg_len_network_order), sizeof(msg_len_network_order)))
     {
-        LOG(ERROR) << "Failed to send msg length: " << msg_len;
+        LOG(ERROR) << "Failed to send msg length: " << data_str.size();
         return false;
     }
 
+    /*
     std::unique_ptr<uint8_t[]> data_buffer{new uint8_t[msg_len]};
     msg->InternalSerializeWithCachedSizesToArray(true, data_buffer.get());
+    */
 
-    if (!SendTlsData(cxn, data_buffer.get(), msg_len))
+    if (!SendTlsData(cxn, reinterpret_cast<const uint8_t*>(data_str.c_str()), data_str.size()))
     {
         LOG(ERROR) << "Failed to send protbuf message body";
         return false;
@@ -247,30 +255,31 @@ bool SendTlsProtobufMessage(
 
 bool ReadTlsProtobufMessageHeader(
     TlsConnection *cxn,
-    uint8_t *out_type,
-    uint32_t *out_size)
+    ProtobufMessageHeader *out_header)
 {
     assert(cxn);
-    assert(out_type);
-    assert(out_size);
+    assert(out_header);
 
     /**
      *  Header format: [type -- 1 byte] [length -- 4 bytes]
      */
-    assert(sizeof(*out_type) == 1);
-    if (!ReadTlsData(cxn, out_type, sizeof(*out_type)))
+    assert(sizeof(out_header->type) == 1);
+    if (!ReadTlsData(cxn, &out_header->type, sizeof(out_header->type)))
     {
         LOG(ERROR) << "Failed to read protobuf message type";
         return false;
     }
 
-    assert(sizeof(*out_size) == 4);
-    if (!ReadTlsData(cxn, reinterpret_cast<uint8_t *>(out_size), sizeof(*out_size)))
+    assert(sizeof(out_header->size) == 4);
+    if (!ReadTlsData(
+            cxn,
+            reinterpret_cast<uint8_t *>(&out_header->size),
+            sizeof(out_header->size)))
     {
         LOG(ERROR) << "Failed to read protobuf message type";
         return false;
     }
-    *out_size = ntohl(*out_size);
+    out_header->size = ntohl(out_header->size);
 
     return true;
 }

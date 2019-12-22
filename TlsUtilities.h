@@ -85,10 +85,36 @@ bool ReadTlsData(
     uint8_t *data,
     size_t data_len);
 
+struct ProtobufMessageHeader {
+    uint8_t type;
+    uint32_t size;
+};
+
 bool ReadTlsProtobufMessageHeader(
     TlsConnection *cxn,
-    uint8_t *out_type,
-    uint32_t *out_size);
+    ProtobufMessageHeader *out_header);
+
+template <typename TMessage>
+bool ReadTlsProtobufMessageBody(
+    TlsConnection *cxn,
+    uint8_t *tmp_buffer,
+    size_t msg_len,
+    TMessage *out_message)
+{
+    assert(cxn);
+    assert(tmp_buffer);
+    assert(out_message);
+
+    if (!ReadTlsData(cxn, tmp_buffer, msg_len))
+    {
+        LOG(ERROR) << "Failed to read TLS data";
+        return false;
+    }
+
+    std::string msg_str{reinterpret_cast<char *>(tmp_buffer), msg_len};
+    out_message->ParseFromString(msg_str);
+    return true;
+}
 
 } // namespace network
 #endif // NETWORK_TLSUTILITIES_H
