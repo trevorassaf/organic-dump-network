@@ -7,9 +7,7 @@
 
 namespace network
 {
-TlsConnection::TlsConnection() : ssl_{nullptr} {
-    LOG(ERROR) << "TlsConnection::TlsConnection() -- non-args ctor";
-}
+TlsConnection::TlsConnection() : ssl_{nullptr} {}
 
 TlsConnection::TlsConnection(
   Fd fd,
@@ -20,10 +18,7 @@ TlsConnection::TlsConnection(
   peer_url_{std::move(peer_url)},
   peer_port_{peer_port},
   ssl_{std::move(ssl)}
-{
-    LOG(ERROR) << "TlsConnection::TlsConnection() -- args ctor -- start";
-    LOG(ERROR) << "TlsConnection::TlsConnection() -- args ctor -- end";
-}
+{}
 
 TlsConnection::~TlsConnection() {}
 
@@ -54,8 +49,6 @@ bool TlsConnection::Read(
   bool *out_eof,
   int *out_errno)
 {
-    LOG(ERROR) << "TlsConnection::Read() -- start";
-
     assert(data);
     assert(out_bytes_actually_read);
     assert(out_eof);
@@ -66,22 +59,15 @@ bool TlsConnection::Read(
     {
         *out_bytes_actually_read = 0;
         *out_errno = errno;
-        LOG(ERROR) << "TlsConnection::Read() -- SSL_read() failed";
         return false;
     }
     else if (result == 0)
     {
-        LOG(ERROR) << "TlsConnection::Read() -- eof!";
         *out_eof = true;
         return true;
     }
 
-    LOG(ERROR) << "TlsConnection::Read() -- after SSL_read()";
-
     *out_bytes_actually_read = result;
-
-    LOG(ERROR) << "TlsConnection::Read() -- end. result: " << result;
-
     return true;
 }
 
@@ -96,9 +82,6 @@ bool TlsConnection::Write(
     assert(out_bytes_actually_written);
     assert(out_eof);
     assert(out_errno);
-
-    LOG(ERROR) << "TlsConnection::Write() -- before SSL_write(). bytes to write: " << bytes_to_write
-               << ". SSL fd: " << SSL_get_fd(ssl_.get());
 
     int result = SSL_write(ssl_.get(), data, bytes_to_write);
     if (result < 0)
@@ -120,7 +103,6 @@ bool TlsConnection::Write(
 void TlsConnection::StealResources(TlsConnection *other)
 {
     assert(other);
-
     fd_ = std::move(other->fd_);
     peer_url_ = std::move(other->peer_url_);
     peer_port_ = other->peer_port_;

@@ -23,15 +23,9 @@ struct SslDeleter
 {
 void operator()(SSL *ssl)
 {
-   LOG(ERROR) << "SSL::~SSL()";
    if (ssl)
    {
-       LOG(ERROR) << "ssl is not nullptr";
        SSL_free(ssl); 
-   }
-   else
-   {
-      LOG(ERROR) << "ssl is nullptr";
    }
 }
 };
@@ -42,15 +36,9 @@ struct SslCtxDeleter
 {
 void operator()(SSL_CTX *ctx)
 {
-   LOG(ERROR) << "SSL_CTX::~SSL_CTX()";
    if (ctx)
    {
-       LOG(ERROR) << "ssl ctx is not nullptr";
        SSL_CTX_free(ctx); 
-   }
-   else
-   {
-      LOG(ERROR) << "ssl ctx is nullptr";
    }
 }
 };

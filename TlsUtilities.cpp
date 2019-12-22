@@ -69,8 +69,6 @@ bool ReadTlsMessage(
     size_t length,
     std::string *out_message)
 {
-    LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- call";
-
     assert(connection);
     assert(read_buffer);
     assert(out_message);
@@ -96,22 +94,14 @@ bool ReadTlsMessage(
                 LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
                 return false;
             }
-
-            LOG(ERROR) << "bozkurtus -- would block";
         }
         else if (eof)
         {
-            LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- eof!";
             return true;
         }
 
         bytes_remaining -= bytes_read;
-
-        LOG(ERROR) << "ReadTlsMessage() loop. bytes remaining: " << bytes_remaining
-                   << ". bytes read: " << bytes_read;
     }
-
-    LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- end";
 
     return true;
 }
@@ -191,17 +181,11 @@ bool ReadTlsData(
         }
         else if (eof)
         {
-            LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- eof!";
             return true;
         }
 
         bytes_remaining -= bytes_read;
-
-        LOG(ERROR) << "ReadTlsMessage() loop. bytes remaining: " << bytes_remaining
-                   << ". bytes read: " << bytes_read;
     }
-
-    LOG(ERROR) << "TlsUtilities::ReadTlsMessage() -- end";
 
     return true;
 }
@@ -225,12 +209,8 @@ bool SendTlsProtobufMessage(
         return false;
     }
 
-    //size_t msg_len = msg->ByteSizeLong();
     std::string data_str;
     msg->SerializeToString(&data_str);
-
-
-    LOG(ERROR) << "Msg Len: " << data_str.size();
 
     uint32_t msg_len_network_order = htonl(static_cast<uint32_t>(data_str.size()));
     if (!SendTlsData(cxn, reinterpret_cast<uint8_t *>(&msg_len_network_order), sizeof(msg_len_network_order)))
@@ -238,11 +218,6 @@ bool SendTlsProtobufMessage(
         LOG(ERROR) << "Failed to send msg length: " << data_str.size();
         return false;
     }
-
-    /*
-    std::unique_ptr<uint8_t[]> data_buffer{new uint8_t[msg_len]};
-    msg->InternalSerializeWithCachedSizesToArray(true, data_buffer.get());
-    */
 
     if (!SendTlsData(cxn, reinterpret_cast<const uint8_t*>(data_str.c_str()), data_str.size()))
     {
