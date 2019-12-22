@@ -52,7 +52,6 @@ const Fd &TlsServer::GetFd() const
 
 bool TlsServer::Accept(TlsConnection *out_connection)
 {
-    LOG(ERROR) << "TlsServer::Accept() -- start";
     assert(out_connection);
 
     struct sockaddr_in client_addr;
@@ -97,8 +96,6 @@ bool TlsServer::Accept(TlsConnection *out_connection)
         std::move(client_ipv4_string),
         ntohs(client_addr.sin_port),
         std::move(ssl)};
-
-    LOG(ERROR) << "TlsServer::Accept() -- end";
 
     return true;
 }

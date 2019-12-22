@@ -176,8 +176,6 @@ bool ReadTlsData(
                 LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
                 return false;
             }
-
-            LOG(ERROR) << "bozkurtus -- would block";
         }
         else if (eof)
         {
