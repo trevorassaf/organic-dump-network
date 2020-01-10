@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 
+#include "NetworkUtilities.h"
 #include "TlsServer.h"
 
 namespace network
@@ -17,7 +18,7 @@ public:
       std::string server_key,
       std::string ca_cert,
       uint16_t port,
-      bool non_blocking,
+      WaitPolicy policy,
       TlsServer *out_server);
 };
 } // namespace network
