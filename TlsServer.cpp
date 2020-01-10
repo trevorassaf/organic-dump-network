@@ -8,14 +8,16 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <cassert>
+#include <cstdint>
+
 #include  <openssl/bio.h>
 #include  <openssl/ssl.h>
 #include  <openssl/err.h>
 
 #include <glog/logging.h>
 
-#include <cassert>
-#include <cstdint>
+#include "NetworkUtilities.h"
 
 namespace network
 {
@@ -69,6 +71,12 @@ bool TlsServer::Accept(TlsConnection *out_connection)
     }
 
     Fd connection_fd{result};
+
+    if (!SetNonBlocking(result)) {
+      LOG(ERROR) << "Failed to configure client socket non-blocking";
+      return false;
+    }
+
     char client_ipv4_string[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &client_addr.sin_addr, client_ipv4_string, INET_ADDRSTRLEN);
     std::string client_ipv4{client_ipv4_string};
@@ -89,7 +97,6 @@ bool TlsServer::Accept(TlsConnection *out_connection)
         ERR_print_errors_fp(stderr);
         return false;
     }
-    fcntl(result, F_SETFL, O_NONBLOCK);
 
     *out_connection = TlsConnection{
         std::move(connection_fd),

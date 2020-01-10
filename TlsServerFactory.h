@@ -17,6 +17,7 @@ public:
       std::string server_key,
       std::string ca_cert,
       uint16_t port,
+      bool non_blocking,
       TlsServer *out_server);
 };
 } // namespace network

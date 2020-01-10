@@ -7,14 +7,16 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <cassert>
+#include <cstdint>
+
 #include  <openssl/bio.h>
 #include  <openssl/ssl.h>
 #include  <openssl/err.h>
 
 #include <glog/logging.h>
 
-#include <cassert>
-#include <cstdint>
+#include "NetworkUtilities.h"
 
 namespace
 {
@@ -28,6 +30,7 @@ bool TlsServerFactory::Create(
     std::string server_key,
     std::string ca_cert,
     uint16_t port,
+    bool non_blocking,
     TlsServer *out_server)
 {
     assert(out_server);
@@ -86,6 +89,11 @@ bool TlsServerFactory::Create(
     }
 
     Fd server_fd{fd};
+
+    if (non_blocking && !SetNonBlocking(fd)) {
+      LOG(ERROR) << "Failed to configure non-blocking server socket";
+      return false;
+    }
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
