@@ -26,11 +26,11 @@ constexpr size_t CONNECTION_QUEUE_SIZE = 10;
 namespace network
 {
 bool TlsServerFactory::Create(
+    uint16_t port,
     std::string server_cert,
     std::string server_key,
     std::string ca_cert,
-    uint16_t port,
-    WaitPolicy policy,
+    WaitPolicy wait_policy,
     TlsServer *out_server)
 {
     assert(out_server);
@@ -90,11 +90,6 @@ bool TlsServerFactory::Create(
 
     Fd server_fd{fd};
 
-    if (policy == WaitPolicy::NON_BLOCKING && !SetNonBlocking(fd)) {
-      LOG(ERROR) << "Failed to configure non-blocking server socket";
-      return false;
-    }
-
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -117,7 +112,7 @@ bool TlsServerFactory::Create(
         return false;
     }
 
-    *out_server = TlsServer{std::move(ctx), std::move(server_fd)};
+    *out_server = TlsServer{std::move(ctx), std::move(server_fd), wait_policy};
     return true;
 }
 } // namespace network

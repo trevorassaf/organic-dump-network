@@ -6,6 +6,7 @@
 #include  <openssl/err.h>
 
 #include "Fd.h"
+#include "NetworkUtilities.h"
 #include "TlsConnection.h"
 #include "TlsUtilities.h"
 
@@ -18,7 +19,8 @@ public:
   TlsServer();
   TlsServer(
       ssl_ctx_unique_ptr ctx,
-      Fd fd);
+      Fd fd,
+      WaitPolicy wait_policy);
   ~TlsServer();
   TlsServer(TlsServer &&other);
   TlsServer &operator=(TlsServer &&other);
@@ -36,6 +38,7 @@ private:
 private:
   ssl_ctx_unique_ptr ctx_;
   Fd fd_;
+  WaitPolicy wait_policy_;
 };
 } // namespace network
 

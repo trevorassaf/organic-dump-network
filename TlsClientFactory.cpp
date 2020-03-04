@@ -18,6 +18,7 @@ bool TlsClientFactory::Create(
     std::string client_cert,
     std::string client_key,
     std::string ca_cert,
+    WaitPolicy wait_policy,
     TlsClient *out_client)
 {
     assert(out_client);
@@ -62,7 +63,8 @@ bool TlsClientFactory::Create(
     *out_client = TlsClient{
         std::move(server_url),
         server_port,
-        std::move(ctx)};
+        std::move(ctx),
+        wait_policy};
 
     return true;
 }

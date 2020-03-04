@@ -49,29 +49,33 @@ class TlsConnection;
 
 bool SendTlsMessage(
     TlsConnection *cxn,
-    const std::string &message);
+    const std::string &message,
+    bool *out_cxn_closed=nullptr);
 
 bool ReadTlsMessage(
     TlsConnection *cxn,
     uint8_t *read_buffer,
     size_t length,
-    std::string *out_message);
+    std::string *out_message,
+    bool *out_cxn_closed=nullptr);
 
 bool SendTlsProtobufMessage(
     TlsConnection *cxn,
     uint8_t msg_type,
     google::protobuf::Message *msg,
-    bool *out_cxn_closed);
+    bool *out_cxn_closed=nullptr);
 
 bool SendTlsData(
     TlsConnection *cxn,
     const uint8_t *data,
-    size_t data_len);
+    size_t data_len,
+    bool *out_cxn_closed=nullptr);
 
 bool ReadTlsData(
     TlsConnection *cxn,
     uint8_t *data,
-    size_t data_len);
+    size_t data_len,
+    bool *out_cxn_closed=nullptr);
 
 struct ProtobufMessageHeader {
     uint8_t type;
@@ -80,20 +84,22 @@ struct ProtobufMessageHeader {
 
 bool ReadTlsProtobufMessageHeader(
     TlsConnection *cxn,
-    ProtobufMessageHeader *out_header);
+    ProtobufMessageHeader *out_header,
+    bool *out_cxn_closed=nullptr);
 
 template <typename TMessage>
 bool ReadTlsProtobufMessageBody(
     TlsConnection *cxn,
     uint8_t *tmp_buffer,
     size_t msg_len,
-    TMessage *out_message)
+    TMessage *out_message,
+    bool *out_cxn_closed=nullptr)
 {
     assert(cxn);
     assert(tmp_buffer);
     assert(out_message);
 
-    if (!ReadTlsData(cxn, tmp_buffer, msg_len))
+    if (!ReadTlsData(cxn, tmp_buffer, msg_len, out_cxn_closed))
     {
         LOG(ERROR) << "Failed to read TLS data";
         return false;

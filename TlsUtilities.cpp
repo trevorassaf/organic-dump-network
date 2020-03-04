@@ -27,7 +27,10 @@ void InitOpenSslForProcess()
     SSL_load_error_strings();
 }
 
-bool SendTlsMessage(TlsConnection *connection, const std::string &message)
+bool SendTlsMessage(
+    TlsConnection *connection,
+    const std::string &message,
+    bool *out_cxn_closed)
 {
     assert(connection);
     size_t bytes_remaining = message.size();
@@ -45,16 +48,21 @@ bool SendTlsMessage(TlsConnection *connection, const std::string &message)
 
         if (!write_succeeded)
         {
-            if (write_errno != EWOULDBLOCK && write_errno != EAGAIN)
-            {
-                LOG(ERROR) << "Encountered error when writing to TLS connection: "
-                           << strerror(write_errno);
-                return false;
-            }
+          if (write_errno != EWOULDBLOCK && write_errno != EAGAIN)
+          {
+            LOG(ERROR) << "Encountered error when writing to TLS connection: "
+                       << strerror(write_errno);
+            return false;
+          }
         }
         else if (eof)
         {
-            return true;
+          if (out_cxn_closed)
+          {
+            *out_cxn_closed = true;
+            LOG(ERROR) << "Connection closed!";
+          }
+          return false;
         }
 
         bytes_remaining -= bytes_written;
@@ -67,7 +75,8 @@ bool ReadTlsMessage(
     TlsConnection *connection,
     uint8_t *read_buffer,
     size_t length,
-    std::string *out_message)
+    std::string *out_message,
+    bool *out_cxn_closed)
 {
     assert(connection);
     assert(read_buffer);
@@ -89,15 +98,20 @@ bool ReadTlsMessage(
 
         if (!read_succeeded)
         {
-            if (read_errno != EWOULDBLOCK && read_errno != EAGAIN)
-            {
-                LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
-                return false;
-            }
+          if (read_errno != EWOULDBLOCK && read_errno != EAGAIN)
+          {
+            LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
+            return false;
+          }
         }
         else if (eof)
         {
-            return true;
+            if (out_cxn_closed)
+            {
+              *out_cxn_closed = true;
+              LOG(ERROR) << "Connection closed!";
+            }
+            return false;
         }
 
         bytes_remaining -= bytes_read;
@@ -109,7 +123,8 @@ bool ReadTlsMessage(
 bool SendTlsData(
     TlsConnection *cxn,
     const uint8_t *data,
-    size_t data_len)
+    size_t data_len,
+    bool *out_cxn_closed)
 {
     assert(cxn);
     assert(data);
@@ -129,16 +144,21 @@ bool SendTlsData(
 
         if (!write_succeeded)
         {
-            if (write_errno != EWOULDBLOCK && write_errno != EAGAIN)
-            {
-                LOG(ERROR) << "Encountered error when writing to TLS connection: "
-                           << strerror(write_errno);
-                return false;
-            }
+          if (write_errno != EWOULDBLOCK && write_errno != EAGAIN)
+          {
+            LOG(ERROR) << "Encountered error when writing to TLS connection: "
+                       << strerror(write_errno);
+            return false;
+          }
         }
         else if (eof)
         {
-            return true;
+          if (out_cxn_closed)
+          {
+            *out_cxn_closed = true;
+            LOG(INFO) << "Connection closed!";
+          }
+          return false;
         }
 
         bytes_remaining -= bytes_written;
@@ -150,7 +170,8 @@ bool SendTlsData(
 bool ReadTlsData(
     TlsConnection *cxn,
     uint8_t *data,
-    size_t data_len)
+    size_t data_len,
+    bool *out_cxn_closed)
 {
     assert(cxn);
     assert(data);
@@ -171,15 +192,21 @@ bool ReadTlsData(
 
         if (!read_succeeded)
         {
-            if (read_errno != EWOULDBLOCK && read_errno != EAGAIN)
-            {
-                LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
-                return false;
-            }
+          if (read_errno != EWOULDBLOCK && read_errno != EAGAIN)
+          {
+            LOG(ERROR) << "Failed while reading from TLS connection: " << strerror(read_errno);
+            return false;
+          }
         }
         else if (eof)
         {
-            return true;
+          if (out_cxn_closed)
+          {
+            *out_cxn_closed = true;
+            LOG(INFO) << "Connection closed";
+          }
+
+          return false;
         }
 
         bytes_remaining -= bytes_read;
@@ -201,7 +228,7 @@ bool SendTlsProtobufMessage(
      *  Packet format: [type -- 1 byte] [length -- 4 bytes] [message -- length bytes]
      */
 
-    if (!SendTlsData(cxn, &msg_type, 1))
+    if (!SendTlsData(cxn, &msg_type, 1, out_cxn_closed))
     {
         LOG(ERROR) << "Failed to send msg type: " << static_cast<int>(msg_type);
         return false;
@@ -210,14 +237,29 @@ bool SendTlsProtobufMessage(
     std::string data_str;
     msg->SerializeToString(&data_str);
 
+    LOG(ERROR) << "bozkurtus -- SendTlsProtobufMessage() -- data str size: "
+        << data_str.size();
+
     uint32_t msg_len_network_order = htonl(static_cast<uint32_t>(data_str.size()));
-    if (!SendTlsData(cxn, reinterpret_cast<uint8_t *>(&msg_len_network_order), sizeof(msg_len_network_order)))
+
+    LOG(ERROR) << "bozkurtus -- SendTlsProtobufMessage() -- network order size: "
+        << msg_len_network_order;
+
+    if (!SendTlsData(
+            cxn,
+            reinterpret_cast<uint8_t *>(&msg_len_network_order),
+            sizeof(msg_len_network_order),
+            out_cxn_closed))
     {
         LOG(ERROR) << "Failed to send msg length: " << data_str.size();
         return false;
     }
 
-    if (!SendTlsData(cxn, reinterpret_cast<const uint8_t*>(data_str.c_str()), data_str.size()))
+    if (!SendTlsData(
+            cxn,
+            reinterpret_cast<const uint8_t*>(data_str.c_str()),
+            data_str.size(),
+            out_cxn_closed))
     {
         LOG(ERROR) << "Failed to send protbuf message body";
         return false;
@@ -228,8 +270,11 @@ bool SendTlsProtobufMessage(
 
 bool ReadTlsProtobufMessageHeader(
     TlsConnection *cxn,
-    ProtobufMessageHeader *out_header)
+    ProtobufMessageHeader *out_header,
+    bool *out_cxn_closed)
 {
+  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- call";
+
     assert(cxn);
     assert(out_header);
 
@@ -237,23 +282,36 @@ bool ReadTlsProtobufMessageHeader(
      *  Header format: [type -- 1 byte] [length -- 4 bytes]
      */
     assert(sizeof(out_header->type) == 1);
-    if (!ReadTlsData(cxn, &out_header->type, sizeof(out_header->type)))
+    if (!ReadTlsData(
+            cxn,
+            &out_header->type,
+            sizeof(out_header->type),
+            out_cxn_closed))
     {
         LOG(ERROR) << "Failed to read protobuf message type";
         return false;
     }
+
+    LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- type: "
+               << static_cast<int>(out_header->type);
 
     assert(sizeof(out_header->size) == 4);
     if (!ReadTlsData(
             cxn,
             reinterpret_cast<uint8_t *>(&out_header->size),
-            sizeof(out_header->size)))
+            sizeof(out_header->size),
+            out_cxn_closed))
     {
         LOG(ERROR) << "Failed to read protobuf message type";
         return false;
     }
+  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- network size: " << out_header->size;
+
     out_header->size = ntohl(out_header->size);
 
+  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- size: " << out_header->size;
+
+  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- end";
     return true;
 }
 

@@ -55,6 +55,7 @@ bool TlsConnection::Read(
     assert(out_errno);
 
     int result = SSL_read(ssl_.get(), data, bytes_to_read);
+
     if (result < 0)
     {
         *out_bytes_actually_read = 0;

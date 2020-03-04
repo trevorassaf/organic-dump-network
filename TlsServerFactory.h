@@ -14,11 +14,11 @@ class TlsServerFactory
 {
 public:
   bool Create(
+      uint16_t port,
       std::string server_cert,
       std::string server_key,
       std::string ca_cert,
-      uint16_t port,
-      WaitPolicy policy,
+      WaitPolicy wait_policy,
       TlsServer *out_server);
 };
 } // namespace network

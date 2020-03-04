@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <cassert>
+#include <cstdio>
 
 #include <glog/logging.h>
 
@@ -19,11 +20,12 @@ TlsClient::TlsClient() : ctx_{nullptr} {}
 TlsClient::TlsClient(
     std::string server_url,
     uint16_t server_port,
-    ssl_ctx_unique_ptr ctx)
+    ssl_ctx_unique_ptr ctx,
+    WaitPolicy wait_policy)
   : server_url_{std::move(server_url)},
     server_port_{server_port},
-    ctx_{std::move(ctx)}
-{}
+    ctx_{std::move(ctx)},
+    wait_policy_{wait_policy} {}
 
 TlsClient::~TlsClient() {}
 
@@ -62,6 +64,7 @@ bool TlsClient::Connect(TlsConnection *out_connection)
     }
 
     Fd fd_wrapper{fd};
+
     if (connect(
           fd_wrapper.Get(),
           reinterpret_cast<struct sockaddr*>(&addr),
@@ -80,7 +83,11 @@ bool TlsClient::Connect(TlsConnection *out_connection)
         ERR_print_errors_fp(stderr);
         return false;
     }
-    fcntl(fd, F_SETFL, O_NONBLOCK);
+
+    if (wait_policy_ == WaitPolicy::NON_BLOCKING && !SetNonBlocking(fd_wrapper.Get())) {
+      LOG(ERROR) << "Failed to configure non-blocking server socket";
+      return false;
+    }
 
     *out_connection = TlsConnection{
       std::move(fd_wrapper),
@@ -99,6 +106,7 @@ void TlsClient::StealResources(TlsClient *other)
     server_port_ = other->server_port_;
     other->server_port_ = 0;
     ctx_ = std::move(other->ctx_);
+    wait_policy_ = other->wait_policy_;
 }
 
 } // namespace network

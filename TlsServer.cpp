@@ -22,14 +22,15 @@
 namespace network
 {
 
-TlsServer::TlsServer() : ctx_{nullptr}, fd_{} {}
+TlsServer::TlsServer() : ctx_{nullptr}, fd_{}, wait_policy_{} {}
 
 TlsServer::TlsServer(
     ssl_ctx_unique_ptr ctx,
-    Fd fd)
+    Fd fd,
+    WaitPolicy wait_policy)
   : ctx_{std::move(ctx)},
-    fd_{std::move(fd)}
-{}
+    fd_{std::move(fd)},
+    wait_policy_{wait_policy} {}
 
 TlsServer::~TlsServer() {}
 
@@ -72,11 +73,6 @@ bool TlsServer::Accept(TlsConnection *out_connection)
 
     Fd connection_fd{result};
 
-    if (!SetNonBlocking(result)) {
-      LOG(ERROR) << "Failed to configure client socket non-blocking";
-      return false;
-    }
-
     char client_ipv4_string[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &client_addr.sin_addr, client_ipv4_string, INET_ADDRSTRLEN);
     std::string client_ipv4{client_ipv4_string};
@@ -93,9 +89,14 @@ bool TlsServer::Accept(TlsConnection *out_connection)
 
     if (SSL_accept(ssl.get()) != 1)
     {
-        LOG(ERROR) << "Failed to conduct SSL handshake";
-        ERR_print_errors_fp(stderr);
+        LOG(ERROR) << "Failed to conduct SSL handshake: " << ERR_get_error();
+        //ERR_print_errors_fp(stderr);
         return false;
+    }
+
+    if (wait_policy_ == WaitPolicy::NON_BLOCKING && !SetNonBlocking(connection_fd.Get())) {
+      LOG(ERROR) << "Failed to configure non-blocking server socket";
+      return false;
     }
 
     *out_connection = TlsConnection{
@@ -111,5 +112,6 @@ void TlsServer::StealResources(TlsServer *other)
 {
     ctx_ = std::move(other->ctx_);
     fd_ = std::move(other->fd_);
+    wait_policy_ = other->wait_policy_;
 }
 } // namespace network
