@@ -11,6 +11,7 @@ add_library(organic_dump_network STATIC
   TlsUtilities.cpp)
 
 include_directories(
+  external/boringssl/repo/include
   ../../../external/boringssl/repo/include
   ../../../external/protobuf/repo/src
 )
