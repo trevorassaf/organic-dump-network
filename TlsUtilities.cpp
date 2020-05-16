@@ -236,14 +236,7 @@ bool SendTlsProtobufMessage(
 
     std::string data_str;
     msg->SerializeToString(&data_str);
-
-    LOG(ERROR) << "bozkurtus -- SendTlsProtobufMessage() -- data str size: "
-        << data_str.size();
-
     uint32_t msg_len_network_order = htonl(static_cast<uint32_t>(data_str.size()));
-
-    LOG(ERROR) << "bozkurtus -- SendTlsProtobufMessage() -- network order size: "
-        << msg_len_network_order;
 
     if (!SendTlsData(
             cxn,
@@ -273,8 +266,6 @@ bool ReadTlsProtobufMessageHeader(
     ProtobufMessageHeader *out_header,
     bool *out_cxn_closed)
 {
-  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- call";
-
     assert(cxn);
     assert(out_header);
 
@@ -292,9 +283,6 @@ bool ReadTlsProtobufMessageHeader(
         return false;
     }
 
-    LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- type: "
-               << static_cast<int>(out_header->type);
-
     assert(sizeof(out_header->size) == 4);
     if (!ReadTlsData(
             cxn,
@@ -305,13 +293,8 @@ bool ReadTlsProtobufMessageHeader(
         LOG(ERROR) << "Failed to read protobuf message type";
         return false;
     }
-  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- network size: " << out_header->size;
 
     out_header->size = ntohl(out_header->size);
-
-  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- size: " << out_header->size;
-
-  LOG(ERROR) << "bozkurtus -- ReadTlsProtobufMessageHeader() -- end";
     return true;
 }
 
