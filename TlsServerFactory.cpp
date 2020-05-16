@@ -112,6 +112,18 @@ bool TlsServerFactory::Create(
         return false;
     }
 
+    int enable_reuse_addr = 1;
+    if (setsockopt(
+            server_fd.Get(),
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            &enable_reuse_addr,
+            sizeof(enable_reuse_addr)) < 0)
+    {
+      LOG(ERROR) << "Failed to configure listening socket to be reused";
+      return false;
+    }
+
     *out_server = TlsServer{std::move(ctx), std::move(server_fd), wait_policy};
     return true;
 }
